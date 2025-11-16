@@ -1,18 +1,16 @@
 name: APK Build
 
 on:
-  pull_request: { }
+  pull_request: {}
   push:
     branches: [ main, develop ]
 
 # Enrich gradle.properties for CI/CD
-# Enrich gradle.properties for CI/CD
 env:
-  # 将 Gradle Daemon 的最大堆内存从 3 GB (3072m) 提高到 4 GB (4096m)
-  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:MaxMetaspaceSize=1g" -Dkotlin.daemon.jvm.options="-Xmx3072m" -Dkotlin.incremental=false
+  # 将 Gradle Daemon 内存提高到 8 GB (8192m)
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx8192m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:MaxMetaspaceSize=1g" -Dkotlin.daemon.jvm.options="-Xmx7168m" -Dkotlin.incremental=false
   # 保持其他 Gradle 参数不变
   CI_GRADLE_ARG_PROPERTIES: --stacktrace -PpreDexEnable=false --max-workers 2 --no-daemon
-
 
 jobs:
   release-fdroid:
@@ -23,12 +21,28 @@ jobs:
       - name: Use JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' # See 'Supported distributions' for available options
+          distribution: 'temurin'
           java-version: '21'
+          
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@v3
+
+      # === 🚀 新增步骤：增加 8 GB Swap 文件 ===
+      - name: Add 8G Swap File for Build Stability
+        run: |
+          echo "Checking current memory status..."
+          free -h
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "New memory status after adding 8G swap:"
+          free -h
+      # =========================================
+
       - name: Assemble Fdroid release apk
         run: ./gradlew assembleFdroidRelease $CI_GRADLE_ARG_PROPERTIES
+
       - name: Upload Fdroid release APKs
         uses: actions/upload-artifact@v4
         with:
@@ -44,12 +58,28 @@ jobs:
       - name: Use JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' # See 'Supported distributions' for available options
+          distribution: 'temurin'
           java-version: '21'
+          
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@v3
+
+      # === 🚀 新增步骤：增加 8 GB Swap 文件 ===
+      - name: Add 8G Swap File for Build Stability
+        run: |
+          echo "Checking current memory status..."
+          free -h
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "New memory status after adding 8G swap:"
+          free -h
+      # =========================================
+      
       - name: Assemble GPlay unsigned apk
         run: ./gradlew clean assembleGplayRelease $CI_GRADLE_ARG_PROPERTIES
+        
       - name: Upload Gplay unsigned APKs
         uses: actions/upload-artifact@v4
         with:
